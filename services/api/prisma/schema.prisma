@@ -1,0 +1,48 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Role { LEARNER TEACHER PARENT SCHOOL_ADMIN ADMIN }
+enum ContentStatus { DRAFT REVIEW APPROVED PUBLISHED ARCHIVED }
+enum PaymentStatus { PENDING SUCCESSFUL FAILED CANCELLED REFUNDED }
+enum SubscriptionStatus { ACTIVE EXPIRING EXPIRED CANCELLED }
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  name String
+  role Role
+  language String @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  learner Learner?
+  teacher Teacher?
+  parent Parent?
+  schoolAdmin SchoolAdmin?
+  auditLogs AuditLog[]
+  notifications Notification[]
+  subscriptions Subscription[]
+}
+model Learner { id String @id @default(cuid()); userId String @unique; user User @relation(fields:[userId], references:[id], onDelete:Cascade); schoolId String?; school School? @relation(fields:[schoolId], references:[id]); classId String?; class Class? @relation(fields:[classId], references:[id]); progress Progress[]; quizAttempts QuizAttempt[]; certificates Certificate[]; parentLinks ParentLearner[] }
+model Teacher { id String @id @default(cuid()); userId String @unique; user User @relation(fields:[userId], references:[id], onDelete:Cascade); schoolId String?; school School? @relation(fields:[schoolId], references:[id]); classes TeacherClass[] }
+model Parent { id String @id @default(cuid()); userId String @unique; user User @relation(fields:[userId], references:[id], onDelete:Cascade); links ParentLearner[] }
+model SchoolAdmin { id String @id @default(cuid()); userId String @unique; user User @relation(fields:[userId], references:[id], onDelete:Cascade); schoolId String; school School @relation(fields:[schoolId], references:[id]) }
+model School { id String @id @default(cuid()); name String; code String @unique; learners Learner[]; teachers Teacher[]; admins SchoolAdmin[]; classes Class[]; createdAt DateTime @default(now()) }
+model Class { id String @id @default(cuid()); name String; schoolId String; school School @relation(fields:[schoolId], references:[id], onDelete:Cascade); learners Learner[]; teachers TeacherClass[]; subjects ClassSubject[] }
+model TeacherClass { teacherId String; classId String; teacher Teacher @relation(fields:[teacherId], references:[id], onDelete:Cascade); class Class @relation(fields:[classId], references:[id], onDelete:Cascade); @@id([teacherId,classId]) }
+model ParentLearner { parentId String; learnerId String; parent Parent @relation(fields:[parentId], references:[id], onDelete:Cascade); learner Learner @relation(fields:[learnerId], references:[id], onDelete:Cascade); @@id([parentId,learnerId]) }
+model Curriculum { id String @id @default(cuid()); name String; levels Level[] }
+model Level { id String @id @default(cuid()); name String; curriculumId String; curriculum Curriculum @relation(fields:[curriculumId], references:[id], onDelete:Cascade); subjects Subject[] }
+model Subject { id String @id @default(cuid()); name String; levelId String; level Level @relation(fields:[levelId], references:[id], onDelete:Cascade); topics Topic[]; classLinks ClassSubject[] }
+model ClassSubject { classId String; subjectId String; class Class @relation(fields:[classId], references:[id], onDelete:Cascade); subject Subject @relation(fields:[subjectId], references:[id], onDelete:Cascade); @@id([classId,subjectId]) }
+model Topic { id String @id @default(cuid()); name String; subjectId String; subject Subject @relation(fields:[subjectId], references:[id], onDelete:Cascade); lessons Lesson[] }
+model Lesson { id String @id @default(cuid()); titleEn String; titleSw String; bodyEn String; bodySw String; topicId String; topic Topic @relation(fields:[topicId], references:[id], onDelete:Cascade); status ContentStatus @default(DRAFT); premium Boolean @default(false); createdAt DateTime @default(now()); updatedAt DateTime @updatedAt; progress Progress[] }
+model Progress { id String @id @default(cuid()); learnerId String; lessonId String; completed Boolean @default(false); percent Int @default(0); updatedAt DateTime @updatedAt; learner Learner @relation(fields:[learnerId], references:[id], onDelete:Cascade); lesson Lesson @relation(fields:[lessonId], references:[id], onDelete:Cascade); @@unique([learnerId,lessonId]) }
+model Quiz { id String @id @default(cuid()); title String; subjectId String; questions Question[]; attempts QuizAttempt[] }
+model Question { id String @id @default(cuid()); quizId String; text String; answer String; options Json?; quiz Quiz @relation(fields:[quizId], references:[id], onDelete:Cascade) }
+model QuizAttempt { id String @id @default(cuid()); learnerId String; quizId String; score Float; submittedAt DateTime @default(now()); learner Learner @relation(fields:[learnerId], references:[id], onDelete:Cascade); quiz Quiz @relation(fields:[quizId], references:[id]) }
+model Subscription { id String @id @default(cuid()); userId String; status SubscriptionStatus; amount Int @default(250); currency String @default("KES"); startedAt DateTime?; expiresAt DateTime?; user User @relation(fields:[userId], references:[id], onDelete:Cascade); payments Payment[] }
+model Payment { id String @id @default(cuid()); userId String; subscriptionId String?; amount Int; status PaymentStatus; provider String @default("MPESA"); externalRef String? @unique; createdAt DateTime @default(now()); user User @relation(fields:[userId], references:[id], onDelete:Cascade); subscription Subscription? @relation(fields:[subscriptionId], references:[id]) }
+model Notification { id String @id @default(cuid()); userId String; title String; body String; read Boolean @default(false); createdAt DateTime @default(now()); user User @relation(fields:[userId], references:[id], onDelete:Cascade) }
+model Certificate { id String @id @default(cuid()); learnerId String; title String; verificationCode String @unique; issuedAt DateTime @default(now()); learner Learner @relation(fields:[learnerId], references:[id], onDelete:Cascade) }
+model AuditLog { id String @id @default(cuid()); userId String?; action String; entity String; entityId String?; metadata Json?; createdAt DateTime @default(now()); user User? @relation(fields:[userId], references:[id]) }

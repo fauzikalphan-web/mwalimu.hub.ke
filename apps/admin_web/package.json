@@ -1,0 +1,1 @@
+{"name":"mwalimu-hub-ke-admin","private":true,"version":"0.1.0","type":"module","scripts":{"dev":"vite","build":"tsc && vite build","preview":"vite preview"},"dependencies":{"@vitejs/plugin-react":"latest","react":"^19.1.1","react-dom":"^19.1.1","vite":"^7.1.3","typescript":"^5.9.2"},"devDependencies":{}}

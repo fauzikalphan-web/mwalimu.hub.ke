@@ -1,0 +1,11 @@
+import 'package:flutter/material.dart';
+import '../../core/network/api_client.dart';
+import '../learner/dashboard_page.dart';
+import 'register_page.dart';
+
+class LoginPage extends StatefulWidget { const LoginPage({super.key}); @override State<LoginPage> createState()=>_LoginPageState(); }
+class _LoginPageState extends State<LoginPage> {
+  final email=TextEditingController(); final password=TextEditingController(); final api=ApiClient(); bool loading=false; String? error;
+  Future<void> login() async { setState(()=>{loading=true,error=null}); try { final d=await api.post('/auth/login',{'email':email.text.trim(),'password':password.text}); api.token=d['token']; if(!mounted)return; Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>DashboardPage(api:api,user:d['user']))); } catch(e){if(mounted)setState(()=>error=e.toString().replaceFirst('Exception: ',''));} finally{if(mounted)setState(()=>loading=false);} }
+  @override Widget build(BuildContext context)=>Scaffold(body:SafeArea(child:Center(child:SingleChildScrollView(padding:const EdgeInsets.all(24),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:430),child:Card(child:Padding(padding:const EdgeInsets.all(24),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Image.asset('assets/logo.png',height:120),const SizedBox(height:12),const Text('Welcome back',style:TextStyle(fontSize:28,fontWeight:FontWeight.bold)),const Text('Learn • Practice • Excel'),const SizedBox(height:24),TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',prefixIcon:Icon(Icons.email_outlined),border:OutlineInputBorder())),const SizedBox(height:14),TextField(controller:password,obscureText:true,decoration:const InputDecoration(labelText:'Password',prefixIcon:Icon(Icons.lock_outline),border:OutlineInputBorder())),if(error!=null)Padding(padding:const EdgeInsets.only(top:12),child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),const SizedBox(height:18),SizedBox(height:52,child:FilledButton(onPressed:loading?null:login,child:Text(loading?'Signing in…':'Sign in'))),const SizedBox(height:8),TextButton(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const RegisterPage())),child:const Text('Create learner account'))])))))));
+}
